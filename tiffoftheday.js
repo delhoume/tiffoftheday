@@ -48,7 +48,8 @@ function pointinpoly(x, y, poly)
     return c;
 }
 
-const output = {// tmnr
+const output = {
+    // trmnlx 
     // width: 1872,
     // height: 1440,
     width: 1280,
@@ -59,7 +60,7 @@ const output = {// tmnr
     ovrratio: 4,
     filtlvlmin: 2, // filter level
     filtlvlmax: 16, // filter level
-    background: 'red',
+    background: 'white',
    // clip: [cassini_valid_polygon],
     isvalid: function (out, xpc, ypc)
     {
@@ -110,7 +111,6 @@ if (imageinfo.format == "tiff") {
     ovrlevel -= 1;
     console.log("ovr", ovrlevel, ovrwidth);
 
-    for (let ii = 0; ii < 100; ++ii) {
     const level = validlevels[Math.floor(Math.random() * validlevels.length)];
     console.log("level", level);
     const page = level.page;
@@ -180,6 +180,5 @@ if (imageinfo.format == "tiff") {
             top: ovroffset + cropy - cropborder,
             left: cropx - cropborder + output.width - new_overview_width - ovroffset
         }])
-        .toFile(`frames/extractfinal${ii <  10 ? ("0"+ ii) :  ii}.jpg`);
-}
+        .toFile("tiffoftheday.jpg");
 }
