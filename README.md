@@ -1,6 +1,6 @@
-This code generates random but controlled detail images from (possibly huge)pyramidal TIFF files.
+This code generates random but controlled detail images from (possibly huge) pyramidal TIFF files.
 
-It selects a location in the full image, a zoom level, and creates a picture of it with an overview of global position in full image.
+It selects a location in the full image, a zoom level, and creates a picture of the location  with an overview of global position in full image.
 
 it has only one dependency (to sharp https://www.sharpjs.cn/) and is highly configurable:
 - dimensions of image
@@ -9,6 +9,7 @@ it has only one dependency (to sharp https://www.sharpjs.cn/) and is highly conf
 - polygons describing valid content areas (usefull for maps for example)
 
 Less than 200 lines of code.
+TIFF input files brings more configurability but other formats can be used.
 
 usage:
 
