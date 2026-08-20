@@ -56,12 +56,12 @@ const output = {
     height: 1280,
     border: 4,
     ovroffset: 50, // offset from top right
-    cropborder: 2,
-    ovrratio: 4,
+    cropborder: 5,
+    ovrratio: 5,
     filtlvlmin: 2, // filter level
     filtlvlmax: 16, // filter level
-    background: 'white',
-   // clip: [cassini_valid_polygon],
+    background: 'red',
+    // clip: [cassini_valid_polygon],
     isvalid: function (out, xpc, ypc)
     {
         if ("clip" in out) {
@@ -78,41 +78,46 @@ const output = {
 console.log(imageinfo);
 if (imageinfo.format == "tiff") {
     const pages = imageinfo.pages;
-    const zvalidlevels = [];
+    const validlevels = [];
     let ovrwidth = Infinity;
     let ovrlevel = 0;
 
     const filtlvlmin = 'filtlvlmin' in output ? output.filtlvlmin : 1;
     const filtlvlmax = 'filtlvlmax' in output ? output.filtlvlmax : 128;
     console.log(output);
-    for (let currentpage = 0; currentpage < pages; currentpage++) {
-        const pageinfo = await sharp(imagename, {
-            limitInputPixels: false,
-            page: currentpage
-        }).metadata();
-        const lwidth = pageinfo.width;
-        const lheight = pageinfo.height;
-        console.log("page", lwidth, lheight);
-        if ((lwidth >= (output.width * filtlvlmin)) && (lheight >= (output.height * filtlvlmin))
-            && (lwidth <= (output.width * filtlvlmax)) && (lheight <= (output.height * filtlvlmax))) {
-            validlevels.push({page: currentpage, width: lwidth, height: lheight });                
-            if (lwidth < ovrwidth) {    
-                ovrwidth = lwidth;
-                ovrlevel = validlevels.length;
+    if (pages == 1) {
+        validlevels.push({ page: 0, width: imageinfo.width, height: imageinfo.height });
+        ovrlevel = 0;
+        ovrwidth = imageinfo.width;
+    } else {
+        for (let currentpage = 0; currentpage < pages; currentpage++) {
+            const pageinfo = await sharp(imagename, {
+                limitInputPixels: false,
+                page: currentpage
+            }).metadata();
+            const lwidth = pageinfo.width;
+            const lheight = pageinfo.height;
+            console.log("page", lwidth, lheight);
+            if ((lwidth >= (output.width * filtlvlmin)) && (lheight >= (output.height * filtlvlmin))
+                && (lwidth <= (output.width * filtlvlmax)) && (lheight <= (output.height * filtlvlmax))) {
+                validlevels.push({ page: currentpage, width: lwidth, height: lheight });
+                if (lwidth < ovrwidth) {
+                    ovrwidth = lwidth;
+                    ovrlevel = validlevels.length;
+                }
             }
-        }
+               }
+     ovrlevel -= 1;
     }
-
     if (validlevels.length == 0) {
         console.log("No valid levels found");
         process.exit(1);
     }
 
-    ovrlevel -= 1;
     console.log("ovr", ovrlevel, ovrwidth);
 
     const level = validlevels[Math.floor(Math.random() * validlevels.length)];
-    console.log("level", level);
+    console.log("selected level", level);
     const page = level.page;
     const width = level.width;
     const height = level.height;
