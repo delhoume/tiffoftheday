@@ -76,8 +76,8 @@ const output = {
 };
 
 console.log(imageinfo);
-if (imageinfo.format == "tiff") {
-    const pages = imageinfo.pages;
+if (true || imageinfo.format == "tiff") {
+    const pages = "pages"in imageinfo ? imageinfo.pages : 0;
     const validlevels = [];
     let ovrwidth = Infinity;
     let ovrlevel = 0;
@@ -85,7 +85,7 @@ if (imageinfo.format == "tiff") {
     const filtlvlmin = 'filtlvlmin' in output ? output.filtlvlmin : 1;
     const filtlvlmax = 'filtlvlmax' in output ? output.filtlvlmax : 128;
     console.log(output);
-    if (pages == 1) {
+    if (pages < 1) {
         validlevels.push({ page: 0, width: imageinfo.width, height: imageinfo.height });
         ovrlevel = 0;
         ovrwidth = imageinfo.width;
@@ -103,11 +103,10 @@ if (imageinfo.format == "tiff") {
                 validlevels.push({ page: currentpage, width: lwidth, height: lheight });
                 if (lwidth < ovrwidth) {
                     ovrwidth = lwidth;
-                    ovrlevel = validlevels.length;
+                    ovrlevel = validlevels.length - 1;
                 }
             }
-               }
-     ovrlevel -= 1;
+        }
     }
     if (validlevels.length == 0) {
         console.log("No valid levels found");
@@ -127,6 +126,10 @@ if (imageinfo.format == "tiff") {
     do {
         x = output.width / 2 + Math.floor(Math.random() * (level.width - output.width));
         y = output.height / 2 + Math.floor(Math.random() * (level.height - output.height));
+        if (x < 0 || y < 0) {
+            console.log("image too small");
+            process.exit();
+        }
         xpc = x / level.width;
         ypc = y / level.height;
         console.log(x, y, xpc, ypc);
