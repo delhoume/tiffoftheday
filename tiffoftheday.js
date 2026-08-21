@@ -1,11 +1,8 @@
 import sharp from "sharp"
-
-const imagename = process.argv[2];
-const imageinfo = await sharp(imagename, { limitInputPixels: false }).metadata();
+import { parseArgs } from "node:util"
+import fs from "node:fs"
 
 const validlevels = [];
-
-const cassini_valid_polygon = [[.55, .05], [.9, .25], [.8, .8], [.3, .85], [.1, .3]];
 
 // poly is an array of [ x, y ] elements
 // range in percent ([0 1])
@@ -48,43 +45,94 @@ function pointinpoly(x, y, poly)
     return c;
 }
 
-const output = {
-    // trmnlx 
-    // width: 1872,
-    // height: 1440,
-    width: 1280,
-    height: 1280,
-    border: 4,
-    ovroffset: 50, // offset from top right
-    cropborder: 5,
-    ovrratio: 5,
-    filtlvlmin: 2, // filter level
-    filtlvlmax: 16, // filter level
-    background: 'red',
-    // clip: [cassini_valid_polygon],
-    isvalid: function (out, xpc, ypc)
-    {
-        if ("clip" in out) {
-            for (const poly of out.clip) {
-                if (!pointinpoly(xpc, ypc, poly)) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
+const cli_config = {
+    options: {
+        config: { type: 'string', short: "c", default: "" },
+        width: { type: 'string', default: "1874" }, // generated image width
+        height: { type: 'string', default: "1440" }, // generated image heioht
+        border: { type: 'string', default: "4" },  // overview border size
+        ovroffset: { type: 'string', default: "50" }, // overview topright offset
+        cropborder: { type: 'string', default: "5" }, // hidhlight border  size 
+        ovrratio: { type: 'string', default: "5" }, // gernerated iamge width to overiew widtg ratio
+        filtlvlmin: { type: 'string', default: "2" }, // minimum tiff level
+        filtlvlmax: { type: 'string', default: "256" }, // maximum tiff level
+        background: { type: 'string', default: "white" }, // borders color
+        validregion: { type: 'string', default: "[[[0.0,0.0],[ 1.0,0.0], [1.0, 1.0],[0.0, 1.0]]]" }, // valid area polygons in %
+        verbose: { type: 'boolean', short: "v", default: false }
+    },
+    allowPositionals: true
 };
 
-console.log(imageinfo);
-if (true || imageinfo.format == "tiff") {
-    const pages = "pages"in imageinfo ? imageinfo.pages : 0;
+let params = {};
+let verbose = false;
+
+function initParameters()
+{
+    const { values, positionals } = parseArgs(cli_config);
+    params = values;
+    verbose = getStringParameterValue('verbose');
+    if (verbose) console.log(values, positionals);
+    let configfile = getStringParameterValue("config");
+
+    if (configfile != "") {
+        const contents = fs.readFileSync(configfile, { encoding: "utf-8" });
+        let params_values = JSON.parse(contents);
+        for (let name in params_values) {
+            params[name] = params_values[name];
+        }
+    }
+    if (positionals.length > 0)
+        return positionals[0];
+
+    return "";
+}
+
+function getIntParameterValue(name)
+{
+    return name in params ? Number(params[name]) : undefined;
+}
+
+function getStringParameterValue(name)
+{
+    return name in params ? params[name] : "";
+}
+function isvalid(xpc, ypc)
+{
+    let validregionstr = getStringParameterValue("validregion");
+    console.log(validregionstr);
+    let validregion = JSON.parse(validregionstr);
+    let numpolygons = validregion.length;
+    let insidearray = [];
+    console.log("polygons", numpolygons);
+    for (let p = 0; p < numpolygons; ++p) {
+        let poly = validregion[p];
+        let inside = pointinpoly(xpc, ypc, poly);
+        if (inside) insidearray.push(p);
+        if (verbose) console.log("polygon", poly, inside);
+    }
+    if (verbose && insidearray.length == 0)  console.log("rejected");
+    return insidearray.length > 0;
+}
+
+async function tiffoftheday()
+{
+    const imagename = initParameters();
+    const imageinfo = await sharp(imagename, { limitInputPixels: false }).metadata();
+    if (verbose) console.log(imageinfo)
+    const pages = "pages" in imageinfo ? imageinfo.pages : 0;
     const validlevels = [];
     let ovrwidth = Infinity;
     let ovrlevel = 0;
 
-    const filtlvlmin = 'filtlvlmin' in output ? output.filtlvlmin : 1;
-    const filtlvlmax = 'filtlvlmax' in output ? output.filtlvlmax : 128;
-    console.log(output);
+    const border = getIntParameterValue('border');
+    const ovroffset = getIntParameterValue('ovroffset');
+    const ovrratio = getIntParameterValue('ovrratio');
+    const cropborder = getIntParameterValue('cropborder');
+    const filtlvlmin = getIntParameterValue('filtlvlmin');
+    const filtlvlmax = getIntParameterValue('filtlvlmax');
+    const outputwidth = getIntParameterValue('width')
+    const outputheight = getIntParameterValue('height');
+    const background = getStringParameterValue('background')
     if (pages < 1) {
         validlevels.push({ page: 0, width: imageinfo.width, height: imageinfo.height });
         ovrlevel = 0;
@@ -97,9 +145,9 @@ if (true || imageinfo.format == "tiff") {
             }).metadata();
             const lwidth = pageinfo.width;
             const lheight = pageinfo.height;
-            console.log("page", lwidth, lheight);
-            if ((lwidth >= (output.width * filtlvlmin)) && (lheight >= (output.height * filtlvlmin))
-                && (lwidth <= (output.width * filtlvlmax)) && (lheight <= (output.height * filtlvlmax))) {
+            if (verbose) console.log("page", lwidth, lheight);
+            if ((lwidth >= (outputwidth * filtlvlmin)) && (lheight >= (outputheight * filtlvlmin))
+                && (lwidth <= (outputwidth * filtlvlmax)) && (lheight <= (outputheight * filtlvlmax))) {
                 validlevels.push({ page: currentpage, width: lwidth, height: lheight });
                 if (lwidth < ovrwidth) {
                     ovrwidth = lwidth;
@@ -113,10 +161,10 @@ if (true || imageinfo.format == "tiff") {
         process.exit(1);
     }
 
-    console.log("ovr", ovrlevel, ovrwidth);
+    if (verbose) console.log("ovr", ovrlevel, ovrwidth);
 
     const level = validlevels[Math.floor(Math.random() * validlevels.length)];
-    console.log("selected level", level);
+    if (verbose) console.log("selected level", level);
     const page = level.page;
     const width = level.width;
     const height = level.height;
@@ -124,25 +172,21 @@ if (true || imageinfo.format == "tiff") {
     let x, y, xpc, ypc;
 
     do {
-        x = output.width / 2 + Math.floor(Math.random() * (level.width - output.width));
-        y = output.height / 2 + Math.floor(Math.random() * (level.height - output.height));
+        x = Math.floor(outputwidth / 2 + Math.random() * (level.width - outputwidth));
+        y = Math.floor(outputheight / 2 + Math.random() * (level.height - outputheight));
         if (x < 0 || y < 0) {
-            console.log("image too small");
+            if (verbose) console.log("image too small");
             process.exit();
         }
         xpc = x / level.width;
         ypc = y / level.height;
-        console.log(x, y, xpc, ypc);
-    } while (!output.isvalid(output, xpc, ypc));
+        if (verbose) console.log("coords in level", xpc, ypc);
+    } while (!isvalid(xpc, ypc));
 
     const overview_original_ratio = validlevels[ovrlevel].width / validlevels[ovrlevel].height;
-    const new_overview_width = Math.floor(output.width / output.ovrratio);
+    const new_overview_width = Math.floor(outputwidth / ovrratio);
     const new_overview_height = Math.floor(new_overview_width / overview_original_ratio);
 
-    const border = 'border' in output ? output.border : 8;
-    const ovroffset = 'ovroffset' in output ? output.ovroffset : 50;
-    const cropborder = 'cropborder' in output ? output.cropborder : 4;
-    const background = 'background' in output ? output.background : 'white';
     const overview = await sharp(imagename, {
         limitInputPixels: false,
         page: ovrlevel
@@ -151,10 +195,10 @@ if (true || imageinfo.format == "tiff") {
         .toFile("overview.jpg");
 
     const cropzone = {
-        left: x - output.width / 2,
-        top: y - output.height / 2,
-        width: output.width,
-        height: output.height
+        left: Math.floor(x - outputwidth / 2),
+        top: Math.floor(y - outputheight / 2),
+        width: outputwidth,
+        height: outputheight
     };
 
     const cropwidth = Math.floor((cropzone.width / level.width) * new_overview_width);
@@ -162,7 +206,7 @@ if (true || imageinfo.format == "tiff") {
     const cropx = Math.floor((cropzone.left / level.width) * new_overview_width);
     const cropy = Math.floor((cropzone.top / level.height) * new_overview_height);
 
-    console.log(cropzone);
+    if (verbose) console.log("cropzone", cropzone);
 
     const extract = await sharp(imagename, {
         limitInputPixels: false, page: level.page
@@ -170,23 +214,27 @@ if (true || imageinfo.format == "tiff") {
         .extract(cropzone)
         .toFile("extract.jpg");
 
-    console.log("crop", cropx, cropy, cropwidth, cropheight);
+    if (verbose) console.log("crop", cropx, cropy, cropwidth, cropheight);
     const crophighlight = await sharp("extract.jpg")
         .resize(cropwidth, cropheight)
         // .tint('red')
         .extend({ left: cropborder, right: cropborder, top: cropborder, bottom: cropborder, background: background })
         .toFile("highlight.jpg");
 
+    const generated_name = `tiffoftheday_${Math.floor(Date.now() / 1000)}.jpg`;
     const finalimage = await sharp("extract.jpg")
         .composite([{
             input: "overview.jpg",
             top: ovroffset - border,
-            left: output.width - new_overview_width - ovroffset - border
+            left: outputwidth - new_overview_width - ovroffset - border
         },
         {
             input: "highlight.jpg",
             top: ovroffset + cropy - cropborder,
-            left: cropx - cropborder + output.width - new_overview_width - ovroffset
+            left: cropx - cropborder + outputwidth - new_overview_width - ovroffset
         }])
-        .toFile("tiffoftheday.jpg");
+        .toFile(generated_name);
+    console.log(`generated ${generated_name}`);
 }
+
+tiffoftheday();

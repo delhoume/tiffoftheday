@@ -8,7 +8,7 @@ it has only one dependency (to sharp https://www.sharpjs.cn/) and is highly conf
 - colors, ratios, sizes
 - polygons describing valid content areas (usefull for maps for example)
 
-Less than 200 lines of code.
+Less than 250 lines of code.
 TIFF input files brings more configurability but other formats can be used.
 
 usage:
@@ -19,6 +19,13 @@ node tiffoftheday.js image.tif
 or 
 deno -A tiffoftheday.js image.tif
 ```` 
-this generates a tiffoftheday.jpg 
+this generates a tiffoftheday_<timestamp>.jpg 
+
+a config file can be specified with `--config` or `-c`, `-v` means verbose
+`node  tiffoftheday.js -v -c example-config.json pearl.tif`
+
+all parameters in json can be also specifiede as cli options
+
+`node  tiffoftheday.js -v --width 500 --height 500 --border 10 pearl.tif`
 
 <img width="1280" height="1280" alt="tiffoftheday" src="https://github.com/user-attachments/assets/74b6d75e-c179-4f03-aad7-f37a3d595205" />

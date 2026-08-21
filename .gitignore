@@ -1,6 +1,7 @@
 /frames
 /node_modules
 /._*
+/tiffoftheday_*.jpg
 package-lock.json
 overview.jpg
 highlight.jpg

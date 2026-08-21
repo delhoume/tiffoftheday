@@ -1,0 +1,12 @@
+{
+  "width": 800,
+  "height": 640,
+  "border": 4,
+  "ovroffset": 20,
+  "cropborder": 2,
+  "ovrratio": 4,
+  "filtlvlmin": 1,
+  "filtlvlmax": 8,
+  "background": "yellow",
+  "validregion": "[[[0.0, 0.0 ], [ 0.25, 0.0 ], [ 0.25, 0.25 ], [ 0.0, 0.25 ]] ]"
+}
