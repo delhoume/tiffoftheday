@@ -24,7 +24,7 @@ this generates a tiffoftheday_<timestamp>.jpg
 a config file can be specified with `--config` or `-c`, `-v` means verbose
 `node  tiffoftheday.js -v -c example-config.json pearl.tif`
 
-all parameters in json can be also specifiede as cli options
+all parameters in json can be also specified as cli options
 
 `node  tiffoftheday.js -v --width 500 --height 500 --border 10 pearl.tif`
 
