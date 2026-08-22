@@ -59,7 +59,7 @@ const cli_config = {
         levelratiomin: { type: 'string', default: "2" }, // minimum ratio between full and selected images
         levelratiomax: { type: 'string', default: "256" }, // maximum ratio between full and selected images
         overviewbordercolor: { type: 'string', default: "white" }, // borders color
-        hisghlightbordercolor: { type: 'string', default: "white" }, // borders color
+        highlightbordercolor: { type: 'string', default: "white" }, // borders color
         validregion: { type: 'string', default: "[[[0.0,0.0],[ 1.0,0.0], [1.0, 1.0],[0.0, 1.0]]]" }, // valid area polygons in %
         verbose: { type: 'boolean', short: "v", default: false },
         notimestamp: { type: 'boolean', default: false }
